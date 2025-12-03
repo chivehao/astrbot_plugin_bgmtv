@@ -35,29 +35,36 @@ class BangumiTvPlugin(Star):
             api_instance = openapi_client.DefaultApi(api_client)
 
             try:
+                name, name_cn, summary, cover_url = "", "", "", ""
 
                 if query.isdigit():
                     subject_id = int(query) # int | 条目 ID
                     subject = api_instance.get_subject_by_id(subject_id)
+                    name = subject.name
+                    name_cn = subject.name_cn
+                    summary = subject.summary
+                    cover_url = subject.images.large
                 else:
-                    return event.plain_result("暂未支持关键词查询。")
+                    # return event.plain_result("暂未支持关键词查询。")
                     limit = 1 # int | 分页参数 (optional)
                     offset = 5 # int | 分页参数 (optional)
                     search_subjects_request = openapi_client.SearchSubjectsRequest(keyword=query)
-                    api_responses:openapi_client.PagedSubject = api_instance.search_subjects(limit=limit, offset=offset, search_subjects_request=search_subjects_request)
-                    logger.info(api_responses.to_json())
+                    logger.info(f"search keyword: {query}")
+                    api_responses = api_instance.search_subjects(limit=limit, offset=offset, search_subjects_request=search_subjects_request)
                     if api_responses.total > 0 :
-                        subject = api_responses.data[0]
-                # logger.info("The response of DefaultApi->get_subject_by_id:\n")
-                # logger.info(subject.name_cn)
+                        search_subject:openapi_client.SearchSubject = api_responses.data[0]
+                        name = search_subject.name
+                        name_cn = search_subject.name_cn
+                        summary = search_subject.summary
+                        cover_url = search_subject.image
                 
-                if not subject:
+                if name == "":
                     return event.plain_result("未找到条目。")
 
                 chain = [
                     Comp.Plain(f"Hello, {user_name}, 你查询的结果如下："),
-                    Comp.Plain(f"名称：{subject.name}\n中文名：{subject.name_cn}\n简介：{subject.summary}\n封面："),
-                    Comp.Image.fromURL(subject.images.large)
+                    Comp.Plain(f"名称：{name}\n中文名：{name_cn}\n简介：{summary}\n封面："),
+                    Comp.Image.fromURL(cover_url)
                 ]
                 return event.chain_result(chain)
                 # yield event.plain_result(f"Hello, {user_name}, 你查询的结果如下：\n {api_response}!")
