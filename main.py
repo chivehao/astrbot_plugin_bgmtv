@@ -6,8 +6,6 @@ import astrbot.api.message_components as Comp
 import openapi_client
 from openapi_client.rest import ApiException
 
-# Defining the host is optional and defaults to https://api.bgm.tv
-# See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
     host = "https://api.bgm.tv"
 )
@@ -16,18 +14,8 @@ configuration = openapi_client.Configuration(
 class BangumiTvPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
-        # logger.info("开始初始化...")
-
         self.config = config
         self.config.save_config()
-        # logger.info("...已完成配置持久化...")
-
-        # logger.info("...已完成配置请求头...")
-
-        # logger.info("...已完成初始化。")
-
-    async def initialize(self):
-        """可选择实现异步的插件初始化方法，当实例化该插件类之后会自动调用该方法。"""
 
     @filter.command("条目查询")
     async def searchSubject(self, event: AstrMessageEvent):
@@ -40,12 +28,10 @@ class BangumiTvPlugin(Star):
 
         query = cmd[1].strip()
 
-        # Enter a context with an instance of the API client
         configuration = openapi_client.Configuration(access_token = self.config.get("access_token", ""))
         with openapi_client.ApiClient(configuration) as api_client:
             api_client.user_agent = self.config.get("user_agent", "AstrBot-BGMTV-Plugin/2.0")
             # logger.info(f"token:{configuration.access_token}\nuser-agent:{api_client.user_agent}")
-            # Create an instance of the API class
             api_instance = openapi_client.DefaultApi(api_client)
 
             try:
@@ -79,5 +65,3 @@ class BangumiTvPlugin(Star):
                 logger.error("Exception when calling DefaultApi->get_subject_by_id: %s\n" % e)
                 return event.chain_result("内部异常，请查看日志！！")
 
-    async def terminate(self):
-        """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
