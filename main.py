@@ -21,14 +21,23 @@ class BangumiTvPlugin(Star):
 
     @filter.command("条目查询")
     async def searchSubject(self, event: AstrMessageEvent):
-        """条目查询 [角色ID]""" # 这是 handler 的描述，将会被解析方便用户了解插件内容。
+        """条目查询 (动画/游戏/书籍/音乐/三次元) [关键词/ID]""" # 这是 handler 的描述，将会被解析方便用户了解插件内容。
 
         user_name = event.get_sender_name()
-        cmd = event.message_str.split(maxsplit=1)
+        cmd = event.message_str.split(maxsplit=2)
         if len(cmd) < 2:
-            return event.plain_result("格式错误，用法: /条目查询 [角色ID]")
+            return event.plain_result("格式错误，用法: /条目查询 (动画/游戏/书籍/音乐/三次元) [关键词/ID]")
 
-        query = cmd[1].strip()
+        
+
+        search_type = openapi_client.SubjectType.Anime
+
+        if (len(cmd) == 2):
+            query = cmd[1].strip()
+        else:
+            # 指定了查询的条目类型
+            search_type = str2type(str=cmd[1].strip())
+            query = cmd[2].strip()
 
         configuration = openapi_client.Configuration(access_token = self.config.get("access_token", ""))
         with openapi_client.ApiClient(configuration) as api_client:
@@ -54,10 +63,9 @@ class BangumiTvPlugin(Star):
                 else:
                     # return event.plain_result("暂未支持关键词查询。")
                     limit = 1 # int | 分页参数 (optional)
-                    offset = 5 # int | 分页参数 (optional)
-                    search_subjects_request = openapi_client.SearchSubjectsRequest(keyword=query)
-                    logger.info(f"search keyword: {query}")
-                    api_responses = api_instance.search_subjects(limit=limit, offset=offset, search_subjects_request=search_subjects_request)
+                    search_subjects_request = openapi_client.SearchSubjectsRequest(keyword=query, sort="rank", filter=openapi_client.SearchSubjectsRequestFilter(type=[search_type]))
+                    logger.info(f"search type: {search_type} keyword: {query}")
+                    api_responses = api_instance.search_subjects(limit=limit, search_subjects_request=search_subjects_request)
                     if api_responses.total > 0 :
                         search_subject:openapi_client.SearchSubject = api_responses.data[0]
                         name = search_subject.name
@@ -109,6 +117,14 @@ def type2str(type: openapi_client.SubjectType):
     elif (type == 4): return "游戏"
     elif (type == 6): return "三次元"
     else: return "未知"
+
+def str2type(str) -> openapi_client.SubjectType:
+    if ("动画" == str): return openapi_client.SubjectType.Anime
+    elif ("书籍" == str): return openapi_client.SubjectType.Book
+    elif ("音乐" == str): return openapi_client.SubjectType.Music
+    elif ("游戏" == str): return openapi_client.SubjectType.Game
+    elif ("三次元" == str): return openapi_client.SubjectType.Real
+    else: return openapi_client.SubjectType.Anime
 
 
 
